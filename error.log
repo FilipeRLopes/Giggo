@@ -1,0 +1,12 @@
+Starting project at C:\Users\fillo\Desktop\Giggo\giggo
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+The following packages should be updated for best compatibility with the installed expo version:
+  react-native@0.76.6 - expected version: 0.76.9
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8085
+Logs for your project will appear below.
+Web Bundled 12557ms node_modules\expo-router\entry.js (2432 modules)
+Web Bundled 12586ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+ LOG  [web] Logs will appear in the browser console

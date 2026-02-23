@@ -13,82 +13,83 @@ export default function DashboardScreen() {
                 <Header />
 
                 <ScrollView className="flex-1">
-                    <View className="p-6 max-w-4xl mx-auto space-y-6">
+                    <View className="p-6 max-w-6xl mx-auto space-y-8">
 
                         {/* Banner Section */}
-                        <Pressable className="relative rounded-xl border border-border overflow-hidden h-40 sm:h-48">
-                            {/* Note: In a real app we would load from a URL or local asset */}
-                            <View className="absolute inset-0 w-full h-full bg-muted justify-center items-center">
-                                <Text className="text-muted-foreground font-semibold">Banner Image Space</Text>
+                        <Pressable className="relative rounded-2xl border border-border overflow-hidden h-56 sm:h-64 cursor-pointer bg-black">
+                            {/* Abstract Background Design */}
+                            <View className="absolute inset-y-0 left-0 w-1/2 bg-primary/10 -skew-x-12 -translate-x-1/2" />
+                            <View className="absolute inset-y-0 right-0 w-1/2 bg-primary/5 skew-x-12 translate-x-1/2" />
+
+                            <View className="absolute inset-0 w-full h-full justify-center items-center px-8">
+                                <Text className="text-white text-4xl sm:text-5xl font-bold text-center leading-tight">
+                                    Score de Match{"\n"}aprimorado
+                                </Text>
                             </View>
+
                             {/* Pagination Dots */}
-                            <View className="absolute bottom-3 left-1/2 -ml-6 z-10 flex-row items-center gap-1.5">
-                                <View className="w-2 h-2 rounded-full bg-white/50 transition-all" />
-                                <View className="w-4 h-2 rounded-full bg-primary transition-all" />
-                                <View className="w-2 h-2 rounded-full bg-white/50 transition-all" />
+                            <View className="absolute bottom-6 left-1/2 -ml-6 z-10 flex-row items-center gap-2">
+                                <View className="w-2 h-2 rounded-full bg-white/20" />
+                                <View className="w-2 h-2 rounded-full bg-primary" />
+                                <View className="w-2 h-2 rounded-full bg-white/20" />
                             </View>
                         </Pressable>
 
                         {/* Trial Alert Section */}
-                        <View className="flex-row items-center gap-3 px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 mt-6 mb-6">
-                            <View className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                            <Text className="text-sm font-bold text-primary">Trial • 0 dias restantes</Text>
+                        <View className="flex-row items-center gap-3 px-4 py-2.5 rounded-full border border-primary/20 bg-primary/5 self-start">
+                            <View className="w-2 h-2 rounded-full bg-primary" />
+                            <Text className="text-sm font-medium text-primary">
+                                Trial • 0 dias restantes
+                            </Text>
                         </View>
 
                         {/* KPI Cards Grid */}
                         <View className="flex-row flex-wrap -mx-2">
-                            <View className="w-1/2 lg:w-1/4 p-2">
-                                <View className="p-4 rounded-xl border border-border bg-card">
-                                    <Text className="text-xs text-muted-foreground">Vagas Hoje</Text>
-                                    <Text className="text-2xl font-bold font-mono mt-1 text-foreground">0</Text>
+                            {[
+                                { label: "Vagas Hoje", value: "0" },
+                                { label: "Novas", value: "0" },
+                                { label: "Match Médio", value: "0%" },
+                                { label: "Status", value: "Trial" }
+                            ].map((card, idx) => (
+                                <View key={idx} className="w-full sm:w-1/2 lg:w-1/4 p-2">
+                                    <View className="p-5 rounded-2xl border border-border bg-card">
+                                        <Text className="text-sm text-muted-foreground mb-4">{card.label}</Text>
+                                        <Text className="text-3xl font-bold font-mono text-foreground">
+                                            {card.value}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </View>
-
-                            <View className="w-1/2 lg:w-1/4 p-2">
-                                <View className="p-4 rounded-xl border border-border bg-card">
-                                    <Text className="text-xs text-muted-foreground">Novas</Text>
-                                    <Text className="text-2xl font-bold font-mono mt-1 text-foreground">0</Text>
-                                </View>
-                            </View>
-
-                            <View className="w-1/2 lg:w-1/4 p-2">
-                                <View className="p-4 rounded-xl border border-border bg-card">
-                                    <Text className="text-xs text-muted-foreground">Match Médio</Text>
-                                    <Text className="text-2xl font-bold font-mono mt-1 text-foreground">0%</Text>
-                                </View>
-                            </View>
-
-                            <View className="w-1/2 lg:w-1/4 p-2">
-                                <View className="p-4 rounded-xl border border-border bg-card">
-                                    <Text className="text-xs text-muted-foreground">Status</Text>
-                                    <Text className="text-2xl font-bold font-mono mt-1 text-foreground">Trial</Text>
-                                </View>
-                            </View>
+                            ))}
                         </View>
 
                         {/* Filter Tabs */}
-                        <View className="flex-row items-center gap-2 mt-6">
-                            <Pressable className="px-4 py-1.5 rounded-lg bg-primary/10">
-                                <Text className="text-sm font-medium text-primary">Todas</Text>
+                        <View className="flex-row items-center gap-6 pt-4">
+                            <Pressable className="relative pb-2">
+                                <Text className="text-sm font-semibold text-primary">Todas</Text>
+                                <View className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                             </Pressable>
 
-                            <Pressable className="px-4 py-1.5 rounded-lg hover:bg-muted">
-                                <Text className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Novas</Text>
+                            <Pressable className="pb-2">
+                                <Text className="text-sm font-medium text-muted-foreground">Novas</Text>
                             </Pressable>
 
-                            <Pressable className="px-4 py-1.5 rounded-lg hover:bg-muted">
-                                <Text className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Visualizadas</Text>
+                            <Pressable className="pb-2">
+                                <Text className="text-sm font-medium text-muted-foreground">Visualizadas</Text>
                             </Pressable>
 
-                            <Pressable className="px-4 py-1.5 rounded-lg hover:bg-muted hidden sm:flex">
-                                <Text className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Aplicadas</Text>
+                            <Pressable className="pb-2 hidden sm:flex">
+                                <Text className="text-sm font-medium text-muted-foreground">Aplicadas</Text>
                             </Pressable>
                         </View>
 
                         {/* Empty State */}
-                        <View className="items-center justify-center py-12 mt-4 space-y-1">
-                            <Text className="text-sm text-muted-foreground text-center">Nenhuma vaga encontrada ainda.</Text>
-                            <Text className="text-xs text-muted-foreground text-center mt-1">Configure suas preferências em Configurações para começar a receber vagas.</Text>
+                        <View className="items-center justify-center py-20">
+                            <Text className="text-base text-muted-foreground text-center font-medium">
+                                Nenhuma vaga encontrada ainda.
+                            </Text>
+                            <Text className="text-sm text-muted-foreground/60 text-center mt-2 max-w-sm">
+                                Configure suas preferências em Configurações para começar a receber vagas.
+                            </Text>
                         </View>
 
                     </View>
