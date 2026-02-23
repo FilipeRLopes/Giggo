@@ -1,12 +1,19 @@
 import { View, Text, Pressable, Platform } from "react-native";
 import { Menu, Radar, Bell } from "lucide-react-native";
 
-export function Header() {
+interface HeaderProps {
+    onMenuPress?: () => void;
+}
+
+export function Header({ onMenuPress }: HeaderProps) {
     return (
-        <View className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-3xl px-4 sm:px-6 h-16 flex-row items-center justify-between">
+        <View className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-3xl px-4 sm:px-6 h-16 flex-row items-center justify-between shadow-sm">
             {/* Esquerda: Botão Menu (Mobile) / Logo (Mobile) / Título (Desktop) */}
             <View className="flex-row items-center gap-3">
-                <Pressable className="h-10 w-10 lg:hidden flex items-center justify-center rounded-md active:bg-accent active:text-accent-foreground">
+                <Pressable
+                    onPress={onMenuPress}
+                    className="h-10 w-10 lg:hidden flex items-center justify-center rounded-md active:bg-accent active:text-accent-foreground"
+                >
                     <Menu size={20} className="text-foreground" />
                 </Pressable>
 
