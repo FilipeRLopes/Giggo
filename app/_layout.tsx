@@ -1,5 +1,5 @@
 import { Slot, usePathname } from "expo-router";
-import { View } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useState, useEffect } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { Header } from "../components/Header";
@@ -23,11 +23,17 @@ export default function RootLayout() {
             />
 
             {/* Area de Conteudo Principal */}
-            <View className="flex-1 relative min-h-screen">
-                <Header onMenuPress={() => setIsSidebarOpen(true)} />
-                <View className="flex-1">
-                    <Slot />
-                </View>
+            <View className="flex-1 relative">
+                <ScrollView
+                    className="flex-1"
+                    stickyHeaderIndices={[0]}
+                    showsVerticalScrollIndicator={true}
+                >
+                    <Header onMenuPress={() => setIsSidebarOpen(true)} />
+                    <View className="flex-1">
+                        <Slot />
+                    </View>
+                </ScrollView>
             </View>
         </View>
     );

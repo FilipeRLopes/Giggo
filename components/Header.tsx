@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export function Header({ onMenuPress }: HeaderProps) {
     return (
-        <View className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-3xl px-4 sm:px-6 h-16 flex-row items-center justify-between shadow-sm">
+        <View className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl px-4 sm:px-6 h-16 flex-row items-center justify-between">
             {/* Esquerda: Botão Menu (Mobile) / Logo (Mobile) / Título (Desktop) */}
             <View className="flex-row items-center gap-3">
                 <Pressable
