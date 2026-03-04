@@ -1,6 +1,17 @@
-import { View, Text, ScrollView, Pressable, TextInput, Switch } from "react-native";
-import { Check, Volume2, Play, ChevronDown, Save } from "lucide-react-native";
-import { useState } from "react";
+import { View, Text, ScrollView, Pressable, TextInput, Platform, DeviceEventEmitter } from "react-native";
+import { Check, Volume2, Play, Pause, ChevronDown, Save, X } from "lucide-react-native";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Audio } from "expo-av";
+import { SHOW_TOAST_EVENT } from "../components/Toaster";
+
+const SOUND_FILES: Record<string, any> = {
+    "Padrão": require("../assets/sounds/padrao.mp3"),
+    "Suave": require("../assets/sounds/suave.mp3"),
+    "Alegre": require("../assets/sounds/alegre.mp3"),
+    "Alerta": require("../assets/sounds/alerta.mp3"),
+    "Digital": require("../assets/sounds/digital.mp3"),
+    "Sino": require("../assets/sounds/sino.mp3"),
+};
 
 const SOUND_OPTIONS = ["Padrão", "Suave", "Alegre", "Alerta", "Digital", "Sino"];
 
@@ -11,13 +22,15 @@ function CustomSelect({ value, onValueChange, options, zIndex = 50, isOpen, onTo
         <View className="relative w-full" style={{ zIndex }}>
             <Pressable
                 onPress={onToggle}
-                className={`h-10 w-full flex-row items-center justify-between rounded-md border ${isOpen ? 'border-primary ring-1 ring-primary' : 'border-input'} px-3 py-2 bg-background hover:bg-muted/50 active:bg-muted transition-colors`}
+                className="flex h-10 w-full flex-row items-center justify-between rounded-md border border-input px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 bg-background flex-1 hover:bg-muted/50 active:bg-muted transition-colors"
                 accessibilityRole="combobox"
                 // @ts-ignore: cursor para web
                 style={{ cursor: 'pointer' }}
             >
-                <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{value}</Text>
-                <ChevronDown size={16} className="text-muted-foreground opacity-50" />
+                <Text className="text-sm text-foreground flex-1" numberOfLines={1} style={{ pointerEvents: 'none' }}>
+                    {value}
+                </Text>
+                <ChevronDown size={16} className="text-muted-foreground opacity-50" aria-hidden={true} />
             </Pressable>
 
             {isOpen && (
@@ -86,6 +99,122 @@ export default function SettingsScreen() {
     });
 
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [playingKey, setPlayingKey] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const audioRef = useRef<any>(null);
+    const timeoutRef = useRef<any>(null);
+    const toastTimeoutRef = useRef<any>(null);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+            if (audioRef.current) {
+                if (Platform.OS === 'web') {
+                    audioRef.current.pause();
+                    audioRef.current.src = "";
+                } else {
+                    audioRef.current.unloadAsync();
+                }
+            }
+        };
+    }, []);
+
+    const handleSave = () => {
+        setIsSaving(true);
+        // Simular salvamento com delay
+        setTimeout(() => {
+            setIsSaving(false);
+            DeviceEventEmitter.emit(SHOW_TOAST_EVENT, "Preferências salvas!");
+        }, 800);
+    };
+
+    const playSound = useCallback(async (soundName: string, key: string) => {
+        const source = SOUND_FILES[soundName];
+        if (!source) return;
+
+        // Cleanup previous sound/timer
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (audioRef.current) {
+            try {
+                if (Platform.OS === 'web') {
+                    audioRef.current.pause();
+                    audioRef.current.src = "";
+                } else {
+                    await audioRef.current.unloadAsync();
+                }
+            } catch (e) { }
+        }
+
+        setPlayingKey(key);
+
+        if (Platform.OS === 'web') {
+            try {
+                const url = typeof source === 'string' ? source : source;
+                // @ts-ignore
+                const audio = new window.Audio(url);
+                audioRef.current = audio;
+
+                audio.onloadedmetadata = () => {
+                    const durationMs = (audio.duration || 0) * 1000;
+                    audio.play().catch(() => setPlayingKey(null));
+
+                    if (durationMs > 0) {
+                        timeoutRef.current = setTimeout(() => {
+                            setPlayingKey((prev) => (prev === key ? null : prev));
+                            audioRef.current = null;
+                        }, durationMs);
+                    }
+                };
+
+                audio.onended = () => {
+                    setPlayingKey((prev) => (prev === key ? null : prev));
+                    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                    audioRef.current = null;
+                };
+
+                audio.onerror = () => {
+                    setPlayingKey(null);
+                    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                    audioRef.current = null;
+                };
+            } catch (e) {
+                console.warn("Erro ao reproduzir som (web):", e);
+                setPlayingKey(null);
+            }
+        } else {
+            try {
+                await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+                const { sound, status } = await Audio.Sound.createAsync(source);
+                audioRef.current = sound;
+
+                const durationMs = (status.isLoaded && status.durationMillis) ? status.durationMillis : 0;
+
+                await sound.playAsync();
+
+                if (durationMs > 0) {
+                    timeoutRef.current = setTimeout(() => {
+                        setPlayingKey((prev) => (prev === key ? null : prev));
+                        sound.unloadAsync();
+                        audioRef.current = null;
+                    }, durationMs);
+                } else {
+                    sound.setOnPlaybackStatusUpdate((s) => {
+                        if (s.isLoaded && s.didJustFinish) {
+                            setPlayingKey(null);
+                            sound.unloadAsync();
+                            audioRef.current = null;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn("Erro ao reproduzir som (native):", e);
+                setPlayingKey(null);
+            }
+        }
+    }, []);
 
     const togglePlatform = (key: PlatformKeys) => {
         setPlatforms(prev => ({ ...prev, [key]: !prev[key] }));
@@ -101,7 +230,7 @@ export default function SettingsScreen() {
                     style={{ cursor: "default" }}
                 />
             )}
-            <View className="px-4 py-8 md:p-8 max-w-4xl mx-auto space-y-8 w-full">
+            <View className="px-4 py-6 md:p-8 max-w-4xl mx-auto gap-6 w-full" style={{ zIndex: 50 }} pointerEvents="box-none">
 
                 {/* Plataformas Monitoradas */}
                 <View className="space-y-4">
@@ -111,9 +240,11 @@ export default function SettingsScreen() {
                             <View key={platform} className="w-1/2 md:w-1/3 p-1.5">
                                 <Pressable
                                     onPress={() => togglePlatform(platform)}
-                                    className="w-full flex-row items-center gap-3 p-4 rounded-xl border border-border bg-card active:opacity-70"
+                                    className={`w-full flex-row items-center gap-3 p-4 rounded-xl border transition-all active:opacity-70 ${platforms[platform] ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}
+                                    // @ts-ignore
+                                    style={{ cursor: 'pointer' }}
                                 >
-                                    <View className={`h-4 w-4 rounded-sm border items-center justify-center ${platforms[platform] ? 'bg-primary border-primary' : 'border-primary'}`}>
+                                    <View className={`h-4 w-4 rounded-sm border items-center justify-center transition-colors ${platforms[platform] ? 'bg-primary border-primary' : 'border-primary'}`}>
                                         {platforms[platform] && <Check size={12} strokeWidth={3} className="text-primary-foreground" />}
                                     </View>
                                     <Text className="text-sm font-medium text-foreground">{platform}</Text>
@@ -178,8 +309,10 @@ export default function SettingsScreen() {
                     <Text className="text-base font-semibold text-foreground">Notificações</Text>
                     <View className="space-y-3">
                         <Pressable
-                            className="flex-row items-center justify-between p-4 rounded-xl border border-border bg-card active:opacity-70"
+                            className={`flex-row items-center justify-between p-4 rounded-xl border transition-all active:opacity-70 ${notifications.email ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}
                             onPress={() => setNotifications({ ...notifications, email: !notifications.email })}
+                            // @ts-ignore
+                            style={{ cursor: 'pointer' }}
                         >
                             <View className="flex-row items-center gap-3">
                                 <View className={`h-4 w-4 rounded-sm border items-center justify-center ${notifications.email ? 'bg-primary border-primary' : 'border-primary'}`}>
@@ -190,8 +323,10 @@ export default function SettingsScreen() {
                         </Pressable>
 
                         <Pressable
-                            className="flex-row items-center justify-between p-4 rounded-xl border border-border bg-card active:opacity-70"
+                            className={`flex-row items-center justify-between p-4 rounded-xl border transition-all active:opacity-70 ${notifications.push ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}
                             onPress={() => setNotifications({ ...notifications, push: !notifications.push })}
+                            // @ts-ignore
+                            style={{ cursor: 'pointer' }}
                         >
                             <View className="flex-row items-center gap-3">
                                 <View className={`h-4 w-4 rounded-sm border items-center justify-center ${notifications.push ? 'bg-primary border-primary' : 'border-primary'}`}>
@@ -202,8 +337,10 @@ export default function SettingsScreen() {
                         </Pressable>
 
                         <Pressable
-                            className="flex-row items-center justify-between p-4 rounded-xl border border-border bg-card active:opacity-70"
+                            className={`flex-row items-center justify-between p-4 rounded-xl border transition-all active:opacity-70 ${notifications.whatsapp ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}
                             onPress={() => setNotifications({ ...notifications, whatsapp: !notifications.whatsapp })}
+                            // @ts-ignore
+                            style={{ cursor: 'pointer' }}
                         >
                             <View className="flex-row items-center gap-3">
                                 <View className={`h-4 w-4 rounded-sm border items-center justify-center ${notifications.whatsapp ? 'bg-primary border-primary' : 'border-primary'}`}>
@@ -250,14 +387,31 @@ export default function SettingsScreen() {
                                     <View className="flex-1" style={{ zIndex: 50 }}>
                                         <CustomSelect
                                             value={defaultSound}
-                                            onValueChange={setDefaultSound}
+                                            onValueChange={(val) => {
+                                                setDefaultSound(val);
+                                                // Sync all platforms to new default
+                                                setPlatformSounds(prev => {
+                                                    const next = { ...prev };
+                                                    (Object.keys(next) as Array<PlatformKeys>).forEach(k => {
+                                                        next[k] = val;
+                                                    });
+                                                    return next;
+                                                });
+                                            }}
                                             options={SOUND_OPTIONS}
                                             isOpen={openDropdown === 'default'}
                                             onToggle={() => setOpenDropdown(prev => prev === 'default' ? null : 'default')}
                                         />
                                     </View>
-                                    <Pressable className="h-10 w-10 items-center justify-center rounded-md border border-input bg-background hover:bg-muted/50 active:bg-muted transition-colors">
-                                        <Play size={16} className="text-foreground" />
+                                    <Pressable
+                                        className="h-10 w-10 items-center justify-center rounded-md border border-input bg-background hover:bg-muted/50 active:bg-muted transition-colors"
+                                        onPress={() => playSound(defaultSound, 'default')}
+                                        // @ts-ignore
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        {playingKey === 'default'
+                                            ? <Pause size={14} className="text-primary" fill="currentColor" />
+                                            : <Play size={16} className="text-foreground" />}
                                     </Pressable>
                                 </View>
                             </View>
@@ -281,8 +435,18 @@ export default function SettingsScreen() {
                                                         onToggle={() => setOpenDropdown(prev => prev === pKey ? null : pKey)}
                                                     />
                                                 </View>
-                                                <Pressable className="h-10 w-10 shrink-0 items-center justify-center rounded-md border border-input bg-background hover:bg-muted/50 active:bg-muted transition-colors">
-                                                    <Play size={14} className="text-foreground" />
+                                                <Pressable
+                                                    className="h-10 w-10 shrink-0 items-center justify-center rounded-md border border-input bg-background hover:bg-muted/50 active:bg-muted transition-colors"
+                                                    onPress={() => {
+                                                        const s = platformSounds[pKey];
+                                                        playSound(s === "Padrão" ? defaultSound : s, pKey);
+                                                    }}
+                                                    // @ts-ignore
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    {playingKey === pKey
+                                                        ? <Pause size={12} className="text-primary" fill="currentColor" />
+                                                        : <Play size={14} className="text-foreground" />}
                                                 </Pressable>
                                             </View>
                                         )
@@ -296,12 +460,16 @@ export default function SettingsScreen() {
                 {/* Salvar Botão */}
                 <View className="mt-4 mb-8 items-start" style={{ zIndex: 10 }}>
                     <Pressable
-                        className="bg-primary h-11 px-8 rounded-md flex-row items-center justify-center gap-2 hover:opacity-90 active:opacity-80 transition-opacity"
+                        onPress={handleSave}
+                        disabled={isSaving}
+                        className={`bg-primary h-11 px-8 rounded-md flex-row items-center justify-center gap-2 transition-all duration-200 ${isSaving ? 'opacity-70' : 'hover:bg-primary/90 active:scale-95 shadow-lg shadow-primary/20'}`}
                         // @ts-ignore
                         style={{ cursor: 'pointer' }}
                     >
                         <Save size={16} className="text-primary-foreground" />
-                        <Text className="text-primary-foreground font-semibold text-base">Salvar Configurações</Text>
+                        <Text className="text-primary-foreground font-semibold text-base">
+                            {isSaving ? "Salvando..." : "Salvar Configurações"}
+                        </Text>
                     </Pressable>
                 </View>
             </View>

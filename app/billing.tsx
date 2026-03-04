@@ -17,7 +17,7 @@ import { Header } from "../components/Header";
 
 export default function BillingScreen() {
     return (
-        <View className="px-4 py-8 md:p-8 max-w-4xl mx-auto space-y-8 w-full">
+        <View className="px-4 py-6 md:px-8 max-w-4xl mx-auto gap-6 w-full">
 
             {/* Current Plan Card */}
             <View className="rounded-xl border border-border bg-card overflow-hidden">

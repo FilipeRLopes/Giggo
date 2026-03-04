@@ -4,7 +4,7 @@ import { Header } from "../components/Header";
 
 export default function DashboardScreen() {
     return (
-        <View className="px-4 py-8 md:p-8 max-w-4xl mx-auto space-y-8 w-full">
+        <View className="px-4 py-6 md:px-8 max-w-4xl mx-auto gap-6 w-full">
 
             {/* Banner Section */}
             <Pressable className="relative rounded-xl border border-border overflow-hidden h-40 sm:h-48 cursor-pointer bg-black">
@@ -71,7 +71,7 @@ export default function DashboardScreen() {
 
             {/* Empty State */}
             <View className="space-y-3">
-                <View className="items-center justify-center py-12">
+                <View className="items-center justify-center py-8">
                     <Text className="text-sm text-muted-foreground text-center">
                         Nenhuma vaga encontrada ainda.
                     </Text>
